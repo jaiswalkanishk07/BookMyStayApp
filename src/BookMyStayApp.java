@@ -321,3 +321,90 @@ class UseCase5BookingRequestQueue {
         }
     }
 }
+
+
+//UC6: Reservation Confirmation & Room Allocation
+class UseCase6RoomAllocation {
+
+    public static void main(String[] args) {
+        System.out.println("Room Allocation Processing");
+
+        // Initialize Centralized Inventory
+        RoomInventory inventory = new RoomInventory();
+
+        // Initialize Allocation Service
+        RoomAllocationService allocationService = new RoomAllocationService();
+
+        // Simulate a Queue of incoming reservations (FIFO)
+        Queue<Reservation> requestQueue = new LinkedList<>();
+        requestQueue.offer(new Reservation("Abhi", "Single"));
+        requestQueue.offer(new Reservation("Subha", "Single"));
+        requestQueue.offer(new Reservation("Vanmathi", "Suite"));
+
+        // Process each reservation in the queue
+        while (!requestQueue.isEmpty()) {
+            allocationService.allocateRoom(requestQueue.poll(), inventory);
+        }
+    }
+
+    // --- Allocation Service ---
+
+    static class RoomAllocationService {
+        private Set<String> allocatedRoomIds;
+        private Map<String, Set<String>> assignedRoomsByType;
+
+        public RoomAllocationService() {
+            this.allocatedRoomIds = new HashSet<>();
+            this.assignedRoomsByType = new HashMap<>();
+        }
+
+        public void allocateRoom(Reservation reservation, RoomInventory inventory) {
+            String type = reservation.getRoomType();
+            int currentAvailable = inventory.getRoomAvailability().getOrDefault(type, 0);
+
+            if (currentAvailable > 0) {
+                // Generate Unique ID
+                String roomId = generateRoomId(type);
+
+                // Confirm Allocation
+                allocatedRoomIds.add(roomId);
+                assignedRoomsByType.computeIfAbsent(type, k -> new HashSet<>()).add(roomId);
+
+                // Update Inventory immediately
+                inventory.updateAvailability(type, currentAvailable - 1);
+
+                System.out.println("Booking confirmed for Guest: " + reservation.getGuestName() +
+                        ", Room ID: " + roomId);
+            } else {
+                System.out.println("Booking failed for Guest: " + reservation.getGuestName() +
+                        ". No " + type + " rooms available.");
+            }
+        }
+
+        private String generateRoomId(String roomType) {
+            int count = assignedRoomsByType.getOrDefault(roomType, new HashSet<>()).size() + 1;
+            return roomType + "-" + count;
+        }
+    }
+
+    // --- Supporting Classes (Reused & Simplified) ---
+
+    static class RoomInventory {
+        private Map<String, Integer> roomAvailability = new HashMap<>();
+        public RoomInventory() {
+            roomAvailability.put("Single", 5);
+            roomAvailability.put("Double", 3);
+            roomAvailability.put("Suite", 2);
+        }
+        public Map<String, Integer> getRoomAvailability() { return roomAvailability; }
+        public void updateAvailability(String type, int count) { roomAvailability.put(type, count); }
+    }
+
+    static class Reservation {
+        private String guestName;
+        private String roomType;
+        public Reservation(String name, String type) { this.guestName = name; this.roomType = type; }
+        public String getGuestName() { return guestName; }
+        public String getRoomType() { return roomType; }
+    }
+}
