@@ -257,3 +257,67 @@ class UseCase4RoomSearch {
     static class DoubleRoom extends Room { public DoubleRoom() { super(2, 400, 2500.0); } }
     static class SuiteRoom extends Room { public SuiteRoom() { super(3, 750, 5000.0); } }
 }
+
+
+//Use Case 5: Booking Request Queue (FIFO)
+class UseCase5BookingRequestQueue {
+
+    public static void main(String[] args) {
+        System.out.println("Booking Request Queue");
+
+        // Initialize booking queue
+        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+
+        // Create booking requests
+        Reservation r1 = new Reservation("Abhi", "Single");
+        Reservation r2 = new Reservation("Subha", "Double");
+        Reservation r3 = new Reservation("Vanmathi", "Suite");
+
+        // Add requests to the queue (FIFO)
+        bookingQueue.addRequest(r1);
+        bookingQueue.addRequest(r2);
+        bookingQueue.addRequest(r3);
+
+        // Display queued booking requests in FIFO order
+        while (bookingQueue.hasPendingRequests()) {
+            Reservation next = bookingQueue.getNextRequest();
+            System.out.println("Processing booking for Guest: " + next.getGuestName() +
+                    ", Room Type: " + next.getRoomType());
+        }
+    }
+
+    static class Reservation {
+        private String guestName;
+        private String roomType;
+
+        public Reservation(String guestName, String roomType) {
+            this.guestName = guestName;
+            this.roomType = roomType;
+        }
+
+        public String getGuestName() { return guestName; }
+        public String getRoomType() { return roomType; }
+    }
+
+    // --- Service: BookingRequestQueue ---
+
+    static class BookingRequestQueue {
+        private Queue<Reservation> requestQueue;
+
+        public BookingRequestQueue() {
+            this.requestQueue = new LinkedList<>();
+        }
+
+        public void addRequest(Reservation reservation) {
+            requestQueue.offer(reservation);
+        }
+
+        public Reservation getNextRequest() {
+            return requestQueue.poll();
+        }
+
+        public boolean hasPendingRequests() {
+            return !requestQueue.isEmpty();
+        }
+    }
+}
