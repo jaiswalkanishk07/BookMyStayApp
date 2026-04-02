@@ -173,10 +173,7 @@ class UseCase3InventorySetup {
 }
 
 
-import java.util.*;
-
-
-//Use Case 4: Room Search & Availability Check
+//UC4: Room Search & Availability Check
 class UseCase4RoomSearch {
 
     public static void main(String[] args) {
