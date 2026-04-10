@@ -745,3 +745,124 @@ class UseCase10BookingCancellation {
         public void updateAvailability(String type, int count) { roomAvailability.put(type, count); }
     }
 }
+
+
+//UC11: Concurrent Booking Simulation
+class UseCase11ConcurrentBookingSimulation {
+
+    public static void main(String[] args) {
+        System.out.println("Concurrent Booking Simulation");
+
+        // Shared Resources
+        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+        RoomInventory inventory = new RoomInventory();
+        RoomAllocationService allocationService = new RoomAllocationService();
+
+        // Adding initial requests to the queue
+        bookingQueue.addRequest(new Reservation("Abhi", "Single"));
+        bookingQueue.addRequest(new Reservation("Subha", "Single"));
+        bookingQueue.addRequest(new Reservation("Vanmathi", "Double"));
+        bookingQueue.addRequest(new Reservation("Kural", "Suite"));
+
+        // Create booking processor tasks
+        Thread t1 = new Thread(new ConcurrentBookingProcessor(bookingQueue, inventory, allocationService));
+        Thread t2 = new Thread(new ConcurrentBookingProcessor(bookingQueue, inventory, allocationService));
+
+        // Start concurrent processing
+        t1.start();
+        t2.start();
+
+        try {
+            // Wait for threads to finish processing for a short time
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            System.out.println("Thread execution interrupted.");
+        }
+
+        System.out.println("\nRemaining Inventory:");
+        inventory.displayInventory();
+    }
+
+    // --- Processor: ConcurrentBookingProcessor ---
+
+    static class ConcurrentBookingProcessor implements Runnable {
+        private BookingRequestQueue bookingQueue;
+        private RoomInventory inventory;
+        private RoomAllocationService allocationService;
+
+        public ConcurrentBookingProcessor(BookingRequestQueue bq, RoomInventory inv, RoomAllocationService ras) {
+            this.bookingQueue = bq;
+            this.inventory = inv;
+            this.allocationService = ras;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                Reservation reservation = null;
+
+                // Synchronize on the queue to ensure only one thread retrieves a request
+                synchronized (bookingQueue) {
+                    if (bookingQueue.hasPendingRequests()) {
+                        reservation = bookingQueue.getNextRequest();
+                    } else {
+                        break; // No more requests, exit thread
+                    }
+                }
+
+                if (reservation != null) {
+                    // Synchronize on inventory to ensure atomic allocation (Thread-Safe)
+                    synchronized (inventory) {
+                        allocationService.allocateRoom(reservation, inventory);
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Services & Models (Thread-Safe versions) ---
+
+    static class RoomInventory {
+        private Map<String, Integer> roomAvailability = new HashMap<>();
+        public RoomInventory() {
+            roomAvailability.put("Single", 5);
+            roomAvailability.put("Double", 3);
+            roomAvailability.put("Suite", 2);
+        }
+        public Map<String, Integer> getRoomAvailability() { return roomAvailability; }
+        public void updateAvailability(String type, int count) { roomAvailability.put(type, count); }
+        public void displayInventory() {
+            roomAvailability.forEach((k, v) -> System.out.println(k + ": " + v));
+        }
+    }
+
+    static class RoomAllocationService {
+        private Map<String, Integer> counters = new HashMap<>();
+        public void allocateRoom(Reservation res, RoomInventory inv) {
+            String type = res.getRoomType();
+            int available = inv.getRoomAvailability().get(type);
+            if (available > 0) {
+                int id = counters.getOrDefault(type, 0) + 1;
+                counters.put(type, id);
+                inv.updateAvailability(type, available - 1);
+                System.out.println("Booking confirmed for Guest: " + res.getGuestName() +
+                        ", Room ID: " + type + "-" + id);
+            }
+        }
+    }
+
+    static class BookingRequestQueue {
+        private Queue<Reservation> queue = new LinkedList<>();
+        public void addRequest(Reservation r) { queue.offer(r); }
+        public Reservation getNextRequest() { return queue.poll(); }
+        public boolean hasPendingRequests() { return !queue.isEmpty(); }
+    }
+
+    static class Reservation {
+        private String guestName;
+        private String roomType;
+        public Reservation(String n, String t) { this.guestName = n; this.roomType = t; }
+        public String getGuestName() { return guestName; }
+        public String getRoomType() { return roomType; }
+    }
+}
