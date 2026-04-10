@@ -558,9 +558,6 @@ class UseCase8BookingHistoryReport {
 }
 
 
-import java.util.*;
-
-
 //UC9: Error Handling & Validation
 class UseCase9ErrorHandlingValidation {
 
@@ -652,5 +649,99 @@ class UseCase9ErrorHandlingValidation {
     static class BookingRequestQueue {
         private Queue<Reservation> queue = new LinkedList<>();
         public void addRequest(Reservation r) { queue.offer(r); }
+    }
+}
+
+
+//UC10: Booking Cancellation & Inventory Rollback
+class UseCase10BookingCancellation {
+
+    public static void main(String[] args) {
+        System.out.println("Booking Cancellation");
+
+        // Initialize components
+        RoomInventory inventory = new RoomInventory();
+        CancellationService cancellationService = new CancellationService();
+
+        // 1. Register some bookings (Simulating existing confirmed reservations)
+        cancellationService.registerBooking("Single-1", "Single");
+        cancellationService.registerBooking("Double-1", "Double");
+
+        // 2. Perform a cancellation
+        cancellationService.cancelBooking("Single-1", inventory);
+
+        // 3. Show Rollback History
+        cancellationService.showRollbackHistory();
+
+        // 4. Verify Inventory Restore
+        System.out.println("Updated Single Room Availability: " +
+                inventory.getRoomAvailability().get("Single"));
+    }
+
+    // --- Cancellation Service ---
+
+    static class CancellationService {
+        /** Stack that stores recently released room IDs for rollback tracking. */
+        private Stack<String> releasedRoomIds;
+
+        /** Maps reservation ID to room type to know what to restore in inventory. */
+        private Map<String, String> reservationRoomTypeMap;
+
+        public CancellationService() {
+            this.releasedRoomIds = new Stack<>();
+            this.reservationRoomTypeMap = new HashMap<>();
+        }
+
+        /** Registers a confirmed booking to allow for later cancellation. */
+        public void registerBooking(String reservationId, String roomType) {
+            reservationRoomTypeMap.put(reservationId, roomType);
+        }
+
+        /** Cancels a confirmed booking and restores inventory safely. */
+        public void cancelBooking(String reservationId, RoomInventory inventory) {
+            if (reservationRoomTypeMap.containsKey(reservationId)) {
+                String roomType = reservationRoomTypeMap.get(reservationId);
+                int currentCount = inventory.getRoomAvailability().getOrDefault(roomType, 0);
+
+                // Inventory Restoration
+                inventory.updateAvailability(roomType, currentCount + 1);
+
+                // Track for Rollback visualization
+                releasedRoomIds.push(reservationId);
+
+                // Remove from active reservations
+                reservationRoomTypeMap.remove(reservationId);
+
+                System.out.println("Booking cancelled successfully. Inventory restored for room type: " + roomType + "\n");
+            } else {
+                System.out.println("Error: Invalid Reservation ID. Cancellation failed.");
+            }
+        }
+
+        /** Displays recently cancelled reservations (LIFO order). */
+        public void showRollbackHistory() {
+            System.out.println("Rollback History (Most Recent First):");
+            if (releasedRoomIds.isEmpty()) {
+                System.out.println("No recent cancellations.");
+            } else {
+                // Using a copy or iterator to show stack contents
+                for (int i = releasedRoomIds.size() - 1; i >= 0; i--) {
+                    System.out.println("Released Reservation ID: " + releasedRoomIds.get(i));
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    // --- Reused Inventory Component ---
+
+    static class RoomInventory {
+        private Map<String, Integer> roomAvailability = new HashMap<>();
+        public RoomInventory() {
+            roomAvailability.put("Single", 5);
+            roomAvailability.put("Double", 3);
+        }
+        public Map<String, Integer> getRoomAvailability() { return roomAvailability; }
+        public void updateAvailability(String type, int count) { roomAvailability.put(type, count); }
     }
 }
