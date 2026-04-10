@@ -1,3 +1,5 @@
+import java.util.*;
+
 public class BookMyStayApp {
     public static void main(String[] args) {
         System.out.println("Hotel Booking Management System Main Entry Point");
@@ -406,5 +408,76 @@ class UseCase6RoomAllocation {
         public Reservation(String name, String type) { this.guestName = name; this.roomType = type; }
         public String getGuestName() { return guestName; }
         public String getRoomType() { return roomType; }
+    }
+}
+
+
+//UC7: Add-On Service Selection
+class UseCase7AddOnServiceSelection {
+
+    public static void main(String[] args) {
+        System.out.println("Add-On Service Selection");
+
+        // Confirmed Reservation ID from previous allocation
+        String reservationId = "Single-1";
+
+        // Initialize Service Manager
+        AddOnServiceManager serviceManager = new AddOnServiceManager();
+
+        // Available Services
+        Service breakfast = new Service("Breakfast", 500.0);
+        Service spa = new Service("Spa", 1000.0);
+
+        // Attach services to the reservation
+        serviceManager.addService(reservationId, breakfast);
+        serviceManager.addService(reservationId, spa);
+
+        // Calculate and display results
+        double totalCost = serviceManager.calculateTotalServiceCost(reservationId);
+        System.out.println("Reservation ID: " + reservationId);
+        System.out.println("Total Add-On Cost: " + totalCost);
+    }
+
+    // --- Data Model: Service ---
+
+    static class Service {
+        private String serviceName;
+        private double cost;
+
+        public Service(String serviceName, double cost) {
+            this.serviceName = serviceName;
+            this.cost = cost;
+        }
+
+        public String getServiceName() { return serviceName; }
+        public double getCost() { return cost; }
+    }
+
+    // --- Service Manager ---
+
+    static class AddOnServiceManager {
+        /** Maps reservation ID to selected services. */
+        private Map<String, List<Service>> servicesByReservation;
+
+        public AddOnServiceManager() {
+            this.servicesByReservation = new HashMap<>();
+        }
+
+        /** Attaches a service to a reservation. */
+        public void addService(String reservationId, Service service) {
+            servicesByReservation
+                    .computeIfAbsent(reservationId, k -> new ArrayList<>())
+                    .add(service);
+        }
+
+        /** Calculates total add-on cost for a reservation. */
+        public double calculateTotalServiceCost(String reservationId) {
+            List<Service> services = servicesByReservation.getOrDefault(reservationId, new ArrayList<>());
+            double total = 0;
+            for (Service s : services) {
+                total += s.getCost();
+            }
+            return total;
+        }
     }
 }
