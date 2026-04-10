@@ -481,3 +481,78 @@ class UseCase7AddOnServiceSelection {
         }
     }
 }
+
+
+//UC8: Booking History & Reporting
+class UseCase8BookingHistoryReport {
+
+    public static void main(String[] args) {
+        System.out.println("Booking History and Reporting\n");
+
+        // Initialize Data Storage
+        BookingHistory history = new BookingHistory();
+
+        // Simulate confirming reservations
+        history.addReservation(new Reservation("Abhi", "Single"));
+        history.addReservation(new Reservation("Subha", "Double"));
+        history.addReservation(new Reservation("Vanmathi", "Suite"));
+
+        // Initialize Reporting Service
+        BookingReportService reportService = new BookingReportService();
+
+        // Generate the report
+        reportService.generateReport(history);
+    }
+
+    // --- Data Storage: BookingHistory ---
+
+    static class BookingHistory {
+        /** List that stores confirmed reservations. */
+        private List<Reservation> confirmedReservations;
+
+        public BookingHistory() {
+            this.confirmedReservations = new ArrayList<>();
+        }
+
+        /** Adds a confirmed reservation to booking history. */
+        public void addReservation(Reservation reservation) {
+            confirmedReservations.add(reservation);
+        }
+
+        /** Returns all confirmed reservations. */
+        public List<Reservation> getConfirmedReservations() {
+            return confirmedReservations;
+        }
+    }
+
+    // --- Service: BookingReportService ---
+
+    static class BookingReportService {
+        /**
+         * Displays a summary report of all confirmed bookings.
+         * Separates reporting logic from data storage.
+         */
+        public void generateReport(BookingHistory history) {
+            System.out.println("Booking History Report");
+            for (Reservation res : history.getConfirmedReservations()) {
+                System.out.println("Guest: " + res.getGuestName() +
+                        ", Room Type: " + res.getRoomType());
+            }
+        }
+    }
+
+    // --- Data Model: Reservation (Reused) ---
+
+    static class Reservation {
+        private String guestName;
+        private String roomType;
+
+        public Reservation(String guestName, String roomType) {
+            this.guestName = guestName;
+            this.roomType = roomType;
+        }
+
+        public String getGuestName() { return guestName; }
+        public String getRoomType() { return roomType; }
+    }
+}
