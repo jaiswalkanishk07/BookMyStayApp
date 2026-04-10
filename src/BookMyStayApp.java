@@ -1,4 +1,5 @@
 import java.util.*;
+import java.io.*;
 
 public class BookMyStayApp {
     public static void main(String[] args) {
@@ -864,5 +865,84 @@ class UseCase11ConcurrentBookingSimulation {
         public Reservation(String n, String t) { this.guestName = n; this.roomType = t; }
         public String getGuestName() { return guestName; }
         public String getRoomType() { return roomType; }
+    }
+}
+
+
+//UC12: Data Persistence & System Recovery
+class UseCase12DataPersistenceRecovery {
+
+    public static void main(String[] args) {
+        System.out.println("System Recovery");
+
+        String filePath = "inventory.txt";
+        RoomInventory inventory = new RoomInventory();
+        FilePersistenceService persistenceService = new FilePersistenceService();
+
+        // Attempt to load previous state
+        persistenceService.loadInventory(inventory, filePath);
+
+        System.out.println("\nCurrent Inventory:");
+        inventory.displayInventory();
+
+        // Save current state (simulating an update or system shutdown)
+        persistenceService.saveInventory(inventory, filePath);
+        System.out.println("Inventory saved successfully.");
+    }
+
+    // --- Persistence Service ---
+
+    static class FilePersistenceService {
+        /** Saves room inventory state to a file in format: roomType=availableCount */
+        public void saveInventory(RoomInventory inventory, String filePath) {
+            try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+                Map<String, Integer> availability = inventory.getRoomAvailability();
+                for (Map.Entry<String, Integer> entry : availability.entrySet()) {
+                    writer.println(entry.getKey() + "=" + entry.getValue());
+                }
+            } catch (IOException e) {
+                System.out.println("Error saving inventory: " + e.getMessage());
+            }
+        }
+
+        /** Loads room inventory state from a file. restores system on startup. */
+        public void loadInventory(RoomInventory inventory, String filePath) {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                System.out.println("No valid inventory data found. Starting fresh.");
+                return;
+            }
+
+            try (Scanner scanner = new Scanner(file)) {
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    String[] parts = line.split("=");
+                    if (parts.length == 2) {
+                        inventory.updateAvailability(parts[0], Integer.parseInt(parts[1]));
+                    }
+                }
+            } catch (IOException | NumberFormatException e) {
+                System.out.println("Error loading inventory: " + e.getMessage());
+            }
+        }
+    }
+
+    // --- Reused Inventory Component ---
+
+    static class RoomInventory {
+        private Map<String, Integer> roomAvailability = new HashMap<>();
+
+        public RoomInventory() {
+            // Default values if no file is found
+            roomAvailability.put("Single", 5);
+            roomAvailability.put("Double", 3);
+            roomAvailability.put("Suite", 2);
+        }
+
+        public Map<String, Integer> getRoomAvailability() { return roomAvailability; }
+        public void updateAvailability(String type, int count) { roomAvailability.put(type, count); }
+        public void displayInventory() {
+            roomAvailability.forEach((k, v) -> System.out.println(k + ": " + v));
+        }
     }
 }
